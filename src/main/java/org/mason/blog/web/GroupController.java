@@ -14,12 +14,13 @@ import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api")
 class GroupController {
 
     private final Logger log = LoggerFactory.getLogger(GroupController.class);
-    private GroupRepository groupRepository;
+    private final GroupRepository groupRepository;
 
     public GroupController(GroupRepository groupRepository) {
         this.groupRepository = groupRepository;
@@ -37,13 +38,13 @@ class GroupController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @CrossOrigin(origins = "http://localhost:5173")
     @PostMapping("/group")
     ResponseEntity<Group> createGroup(@Valid @RequestBody Group group) throws URISyntaxException {
         log.info("Request to create group: {}", group);
         Group result = groupRepository.save(group);
         return ResponseEntity.created(new URI("/api/group/" + result.getId()))
                 .body(result);
-        //f
     }
 
     @PutMapping("/group/{id}")
