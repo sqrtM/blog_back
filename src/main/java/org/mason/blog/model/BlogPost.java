@@ -7,28 +7,32 @@ import lombok.RequiredArgsConstructor;
 
 import jakarta.persistence.*;
 
+import java.sql.Blob;
+import java.time.Instant;
 import java.util.Set;
 
 @Data
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "user_group")
-public class Group {
+@Table(name = "blog_post")
+public class BlogPost {
 
     @Id
     @GeneratedValue
     private Long id;
     @NonNull
-    private String name;
-    private String address;
-    private String city;
-    private String stateOrProvince;
-    private String country;
-    private String postalCode;
+    private String title;
+    private String author;
+    private Instant date;
+    private Blob body;
+
+
+    /*
     @ManyToOne(cascade = CascadeType.PERSIST)
     private User user;
 
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Set<Event> events;
+     */
 }
