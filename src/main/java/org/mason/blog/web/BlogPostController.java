@@ -1,10 +1,10 @@
 package org.mason.blog.web;
 
+import org.jetbrains.annotations.NotNull;
 import org.mason.blog.model.BlogPost;
 import org.mason.blog.model.BlogPostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,7 +50,7 @@ class BlogPostController {
 
     @PutMapping("/post/{id}")
     ResponseEntity<BlogPost> updatePost(@PathVariable(value = "id") Long id,
-                                        @Valid @RequestBody BlogPost incomingPostDetails)
+                                        @Valid @RequestBody @NotNull BlogPost incomingPostDetails)
                                         throws Exception {
         BlogPost originalPost = postRepository.findById(id)
                 .orElseThrow(() -> new Exception("User not found on :: "+ id));

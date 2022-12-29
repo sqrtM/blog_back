@@ -20,5 +20,5 @@ public class Comment {
     @NonNull
     private String author;
     private Instant date;
-    private Blob body;
+    private String body;
 }
