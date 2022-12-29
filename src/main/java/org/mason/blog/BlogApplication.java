@@ -6,6 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/*
+TODO: 2. add a 'tags' class under model package.
+TODO: 3. Set up mySQL locally.
+
+ */
+
 @SpringBootApplication
 public class BlogApplication {
 

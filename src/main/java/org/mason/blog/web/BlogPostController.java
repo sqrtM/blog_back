@@ -4,6 +4,7 @@ import org.mason.blog.model.BlogPost;
 import org.mason.blog.model.BlogPostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,12 @@ class BlogPostController {
     }
 
     @GetMapping("/posts")
-    Collection<BlogPost> posts() {
+    Collection<BlogPost> getPosts() {
         return postRepository.findAll();
     }
 
     @GetMapping("/post/{id}")
-    ResponseEntity<?> getpost(@PathVariable Long id) {
+    ResponseEntity<?> getPost(@PathVariable Long id) {
         Optional<BlogPost> post = postRepository.findById(id);
         return post.map(response -> ResponseEntity.ok().body(response))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -40,7 +41,7 @@ class BlogPostController {
 
     @CrossOrigin(origins = "http://localhost:5173")
     @PostMapping("/post")
-    ResponseEntity<BlogPost> createpost(@Valid @RequestBody BlogPost post) throws URISyntaxException {
+    ResponseEntity<BlogPost> createPost(@Valid @RequestBody BlogPost post) throws URISyntaxException {
         log.info("Request to create post: {}", post);
         BlogPost result = postRepository.save(post);
         return ResponseEntity.created(new URI("/api/post/" + result.getId()))
@@ -48,14 +49,32 @@ class BlogPostController {
     }
 
     @PutMapping("/post/{id}")
-    ResponseEntity<BlogPost> updatepost(@Valid @RequestBody BlogPost post) {
-        log.info("Request to update post: {}", post);
-        BlogPost result = postRepository.save(post);
+    ResponseEntity<BlogPost> updatePost(@PathVariable(value = "id") Long id,
+                                        @Valid @RequestBody BlogPost incomingPostDetails)
+                                        throws Exception {
+        BlogPost originalPost = postRepository.findById(id)
+                .orElseThrow(() -> new Exception("User not found on :: "+ id));
+
+        incomingPostDetails.setId(originalPost.getId());
+
+        if (incomingPostDetails.getTitle() == null) {
+            incomingPostDetails.setTitle(originalPost.getTitle());
+        }
+        if (incomingPostDetails.getAuthor() == null) {
+            incomingPostDetails.setAuthor(originalPost.getAuthor());
+        }
+
+
+        originalPost.setTitle(incomingPostDetails.getTitle());
+        originalPost.setAuthor(incomingPostDetails.getAuthor());
+
+        log.info("Request to update post: {}", originalPost);
+        BlogPost result = postRepository.save(originalPost);
         return ResponseEntity.ok().body(result);
     }
 
     @DeleteMapping("/post/{id}")
-    public ResponseEntity<?> deletepost(@PathVariable Long id) {
+    public ResponseEntity<?> deletePost(@PathVariable Long id) {
         log.info("Request to delete post: {}", id);
         postRepository.deleteById(id);
         return ResponseEntity.ok().build();
