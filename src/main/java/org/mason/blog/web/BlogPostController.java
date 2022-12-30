@@ -63,10 +63,14 @@ class BlogPostController {
         if (incomingPostDetails.getAuthor() == null) {
             incomingPostDetails.setAuthor(originalPost.getAuthor());
         }
+        if (incomingPostDetails.getBody() == null) {
+            incomingPostDetails.setBody(originalPost.getBody());
+        }
 
 
         originalPost.setTitle(incomingPostDetails.getTitle());
         originalPost.setAuthor(incomingPostDetails.getAuthor());
+        originalPost.setBody(incomingPostDetails.getBody());
 
         log.info("Request to update post: {}", originalPost);
         BlogPost result = postRepository.save(originalPost);
