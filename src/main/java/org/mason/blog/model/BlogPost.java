@@ -1,10 +1,7 @@
 package org.mason.blog.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,9 +20,9 @@ public class BlogPost {
     @NonNull
     private String title;
     private String author;
-    private Instant date;
+    private String date;
     private String body;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private Set<Comment> comments;
+    //@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    //private Set<Comment> comments;
 }
