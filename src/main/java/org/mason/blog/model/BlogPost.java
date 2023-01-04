@@ -9,7 +9,6 @@ import java.util.Set;
 
 @Data
 @NoArgsConstructor
-@RequiredArgsConstructor
 @Entity
 @Table(name = "blog_post")
 public class BlogPost {
@@ -17,7 +16,6 @@ public class BlogPost {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
-    @NonNull
     private String title;
     private String author;
     private String date;

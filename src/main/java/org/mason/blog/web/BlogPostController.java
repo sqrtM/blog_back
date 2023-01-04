@@ -1,33 +1,27 @@
 package org.mason.blog.web;
 
+import jakarta.validation.Valid;
 import org.jetbrains.annotations.NotNull;
 import org.mason.blog.model.BlogPost;
-import org.mason.blog.model.BlogPostRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
-
 import javax.sql.DataSource;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Optional;
+
+// TODO: note that while the API is now CRUD functional, it still breaks whenever you delete a post because it's always searching for "next". fix this.
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api")
 class BlogPostController {
 
-    private final Logger log = LoggerFactory.getLogger(BlogPostController.class);
-    private final BlogPostRepository postRepository;
+    //private final Logger log = LoggerFactory.getLogger(BlogPostController.class);
 
     ApplicationContext applicationContext = new ClassPathXmlApplicationContext("context.xml");
     DataSource dataSource = (DataSource)applicationContext.getBean("dataSource");
@@ -40,58 +34,101 @@ class BlogPostController {
 
     Connection conn = DriverManager.getConnection(url, username, password);
 
-    public BlogPostController(BlogPostRepository postRepository) throws SQLException {
-        this.postRepository = postRepository;
+    BlogPostController() throws SQLException {
     }
 
+
     @GetMapping("/posts")
-    ResponseEntity[] getPosts() throws SQLException {
+    ResponseEntity<ArrayList<BlogPost>> getPosts() throws SQLException {
         ArrayList<BlogPost> postList = new ArrayList<>();
-        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM blog_post WHERE id = ?");
+        PreparedStatement query = conn.prepareStatement("SELECT * FROM blog_post WHERE id = ?");
         int index = 1;
-        preparedStatement.setInt(1, index);
-        ResultSet rs = preparedStatement.executeQuery();
-        while (rs.next()) {
+        query.setInt(1, index);
+        ResultSet indexedRow = query.executeQuery();
+        while (indexedRow.next()) {
             BlogPost nextPost = new BlogPost();
 
-            nextPost.setId(rs.getLong("id"));
-            nextPost.setTitle(rs.getString("title"));
-            nextPost.setAuthor(rs.getString("author"));
-            nextPost.setDate(rs.getString("date"));
-            nextPost.setBody(rs.getString("body"));
+            nextPost.setId(indexedRow.getLong("id"));
+            nextPost.setTitle(indexedRow.getString("title"));
+            nextPost.setAuthor(indexedRow.getString("author"));
+            nextPost.setDate(indexedRow.getString("date"));
+            nextPost.setBody(indexedRow.getString("body"));
             postList.add(nextPost);
 
             index++;
-            preparedStatement.setInt(1, index);
-            rs = preparedStatement.executeQuery();
+            query.setInt(1, index);
+            indexedRow = query.executeQuery();
         }
-        return new ResponseEntity[]{ResponseEntity.ok(postList)};
+        return ResponseEntity.ok(postList);
     }
 
     @GetMapping("/post/{id}")
-    ResponseEntity<?> getPost(@PathVariable Long id) {
-        Optional<BlogPost> post = postRepository.findById(id);
-        return post.map(response -> ResponseEntity.ok().body(response))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    ResponseEntity<BlogPost> getPost(@PathVariable int id) throws SQLException {
+        BlogPost post = new BlogPost();
+        PreparedStatement query = conn.prepareStatement("SELECT * FROM blog_post WHERE id = ?");
+        query.setInt(1, id);
+        ResultSet indexedRow = query.executeQuery();
+
+        while (indexedRow.next()) {
+            post.setId(indexedRow.getLong("id"));
+            post.setTitle(indexedRow.getString("title"));
+            post.setAuthor(indexedRow.getString("author"));
+            post.setDate(indexedRow.getString("date"));
+            post.setBody(indexedRow.getString("body"));
+        }
+
+        return ResponseEntity.ok(post);
     }
 
     @CrossOrigin(origins = "http://localhost:5173")
     @PostMapping("/post")
-    ResponseEntity<BlogPost> createPost(@Valid @RequestBody BlogPost post) throws URISyntaxException {
-        log.info("Request to create post: {}", post);
-        BlogPost result = postRepository.save(post);
-        return ResponseEntity.created(new URI("/api/post/" + result.getId()))
-                .body(result);
+    ResponseEntity<BlogPost> createPost(@Valid @RequestBody BlogPost incomingPostDetails) throws SQLException {
+
+        PreparedStatement query = conn.prepareStatement(
+                "INSERT INTO blog_post (id, title, author, body) VALUES (?, ?, ?, ?)"
+        );
+        PreparedStatement getHighestID = conn.prepareStatement("SELECT id FROM blog_post WHERE id=(SELECT max(id) FROM blog_post)");
+        ResultSet highestIDResultSet = getHighestID.executeQuery();
+        while (highestIDResultSet.next()) {
+            query.setLong(1, highestIDResultSet.getInt("id") + 1);
+        }
+        query.setString(2, incomingPostDetails.getTitle());
+        query.setString(3, incomingPostDetails.getAuthor());
+        query.setString(4, incomingPostDetails.getBody());
+        query.executeUpdate();
+
+        BlogPost returnedPost = new BlogPost();
+        PreparedStatement returnQuery = conn.prepareStatement("SELECT * FROM blog_post WHERE id=(SELECT max(id) FROM blog_post)");
+        ResultSet indexedRow = returnQuery.executeQuery();
+
+        while (indexedRow.next()) {
+            returnedPost.setId(indexedRow.getLong("id"));
+            returnedPost.setTitle(indexedRow.getString("title"));
+            returnedPost.setAuthor(indexedRow.getString("author"));
+            returnedPost.setDate(indexedRow.getString("date"));
+            returnedPost.setBody(indexedRow.getString("body"));
+        }
+
+        return ResponseEntity.ok(returnedPost);
     }
 
     @PutMapping("/post/{id}")
-    ResponseEntity<BlogPost> updatePost(@PathVariable(value = "id") Long id,
+    ResponseEntity<BlogPost> updatePost(@PathVariable(value = "id") int id,
                                         @Valid @RequestBody @NotNull BlogPost incomingPostDetails)
                                         throws Exception {
-        BlogPost originalPost = postRepository.findById(id)
-                .orElseThrow(() -> new Exception("Post not found on :: "+ id));
 
-        incomingPostDetails.setId(originalPost.getId());
+        BlogPost originalPost = new BlogPost();
+        PreparedStatement returnQuery = conn.prepareStatement("SELECT * FROM blog_post WHERE id = ?");
+        returnQuery.setInt(1, id);
+        ResultSet indexedRow = returnQuery.executeQuery();
+
+        while (indexedRow.next()) {
+            originalPost.setId(indexedRow.getLong("id"));
+            originalPost.setTitle(indexedRow.getString("title"));
+            originalPost.setAuthor(indexedRow.getString("author"));
+            originalPost.setDate(indexedRow.getString("date"));
+            originalPost.setBody(indexedRow.getString("body"));
+        }
 
         if (incomingPostDetails.getTitle() == null) {
             incomingPostDetails.setTitle(originalPost.getTitle());
@@ -103,20 +140,24 @@ class BlogPostController {
             incomingPostDetails.setBody(originalPost.getBody());
         }
 
+        PreparedStatement query = conn.prepareStatement(
+                "UPDATE blog_post " +
+                    "SET title = ?, author = ?, body = ? " +
+                    "WHERE id = " + id
+        );
+        query.setString(1, incomingPostDetails.getTitle());
+        query.setString(2, incomingPostDetails.getAuthor());
+        query.setString(3, incomingPostDetails.getBody());
+        query.executeUpdate();
 
-        originalPost.setTitle(incomingPostDetails.getTitle());
-        originalPost.setAuthor(incomingPostDetails.getAuthor());
-        originalPost.setBody(incomingPostDetails.getBody());
-
-        log.info("Request to update post: {}", originalPost);
-        BlogPost result = postRepository.save(originalPost);
-        return ResponseEntity.ok().body(result);
+        return ResponseEntity.ok(incomingPostDetails);
     }
 
     @DeleteMapping("/post/{id}")
-    public ResponseEntity<?> deletePost(@PathVariable Long id) {
-        log.info("Request to delete post: {}", id);
-        postRepository.deleteById(id);
+    public ResponseEntity<?> deletePost(@PathVariable int id) throws SQLException {
+        PreparedStatement returnQuery = conn.prepareStatement("DELETE FROM blog_post WHERE id = ?");
+        returnQuery.setInt(1, id);
+        returnQuery.executeUpdate();
         return ResponseEntity.ok().build();
     }
 }
