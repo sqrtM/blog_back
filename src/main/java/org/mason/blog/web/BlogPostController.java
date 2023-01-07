@@ -10,7 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.sql.DataSource;
-import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -20,8 +19,6 @@ import java.util.ArrayList;
 @RestController
 @RequestMapping("/api")
 class BlogPostController {
-
-    //private final Logger log = LoggerFactory.getLogger(BlogPostController.class);
 
     ApplicationContext applicationContext = new ClassPathXmlApplicationContext("context.xml");
     DataSource dataSource = (DataSource)applicationContext.getBean("dataSource");
@@ -41,25 +38,23 @@ class BlogPostController {
     @GetMapping("/posts")
     ResponseEntity<ArrayList<BlogPost>> getPosts() throws SQLException {
         ArrayList<BlogPost> postList = new ArrayList<>();
-        PreparedStatement query = conn.prepareStatement("SELECT * FROM blog_post WHERE id = ?");
-        int index = 1;
-        query.setInt(1, index);
-        ResultSet indexedRow = query.executeQuery();
-        while (indexedRow.next()) {
+        String query = "SELECT * FROM blog_post";
+        Statement statement = conn.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+        while (resultSet.next()) {
             BlogPost nextPost = new BlogPost();
 
-            nextPost.setId(indexedRow.getLong("id"));
-            nextPost.setTitle(indexedRow.getString("title"));
-            nextPost.setAuthor(indexedRow.getString("author"));
-            nextPost.setDate(indexedRow.getString("date"));
-            nextPost.setBody(indexedRow.getString("body"));
+            nextPost.setId(resultSet.getLong("id"));
+            nextPost.setTitle(resultSet.getString("title"));
+            nextPost.setAuthor(resultSet.getString("author"));
+            nextPost.setDate(resultSet.getString("date"));
+            nextPost.setBody(resultSet.getString("body"));
             postList.add(nextPost);
-
-            index++;
-            query.setInt(1, index);
-            indexedRow = query.executeQuery();
         }
+
         return ResponseEntity.ok(postList);
+
+
     }
 
     @GetMapping("/post/{id}")
